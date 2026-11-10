@@ -18,12 +18,61 @@ h2{font-size:28px;margin:0 0 10px}.muted{color:var(--muted)}.menu{display:grid;g
 input{width:100%;font:inherit;padding:18px;border:3px solid #adb8c4;border-radius:12px;margin-top:15px}input:focus{outline:4px solid #c9daf8;border-color:var(--blue)}
 button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:14px 20px;cursor:pointer}.primary{background:var(--blue);color:#fff}.secondary{background:var(--blue2);color:var(--blue)}
 .feedback{min-height:38px;margin:12px 0;font-weight:700}.ok{color:var(--ok)}.bad{color:var(--bad)}
-.stats{display:flex;gap:10px;flex-wrap:wrap}.stat{background:#eef2f6;border-radius:10px;padding:9px 14px}.keys{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:18px}
-.key{min-width:43px;padding:9px 12px;background:var(--key);border:1px solid var(--border);border-bottom-width:3px;border-radius:7px;text-align:center;font-weight:700}
+.stats{display:flex;gap:10px;flex-wrap:wrap}.stat{background:#eef2f6;border-radius:10px;padding:9px 14px}
 .actions{display:flex;gap:10px;flex-wrap:wrap}.hidden{display:none!important}.choice{display:grid;gap:10px;margin:18px 0}.choice button{background:#f0f3f7;border:2px solid #ccd4dd;text-align:left}.choice button:hover{border-color:var(--blue)}
 .timer{font-size:25px;font-weight:700}.successbox{text-align:center;padding:15px}.big{font-size:42px;font-weight:700}
 footer{text-align:center;color:var(--muted);padding:10px 20px 30px;font-size:16px}
 @media(max-width:650px){body{font-size:18px}header h1{font-size:28px}.target{font-size:33px}}
+
+/* ===== Clavier virtuel ===== */
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 22px;
+  user-select: none;
+}
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.key {
+  min-width: 40px;
+  height: 44px;
+  padding: 0 8px;
+  background: var(--key);
+  border: 1px solid var(--border);
+  border-bottom-width: 3px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  transition: all 0.15s ease;
+}
+.key.space { min-width: 260px; }
+.key.correct {
+  background: #c8f0d8 !important;
+  border-color: #197a4b !important;
+  color: #0d5c35;
+  transform: scale(1.07);
+  box-shadow: 0 0 0 3px #197a4b33;
+}
+.key.wrong {
+  background: #fddede !important;
+  border-color: #b3261e !important;
+  color: #8a1a14;
+  transform: scale(1.07);
+  box-shadow: 0 0 0 3px #b3261e33;
+}
+.key.next {
+  background: #d6e6ff !important;
+  border-color: var(--blue) !important;
+  color: var(--blue);
+}
 </style>
 </head>
 <body>
@@ -55,7 +104,7 @@ footer{text-align:center;color:var(--muted);padding:10px 20px 30px;font-size:16p
 <input id="answer" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tape ici…">
 <div id="feedback" class="feedback" aria-live="polite"></div>
 <div class="top"><div class="stats"><div class="stat">Erreurs : <span id="errors">0</span></div><div class="stat">Réussites : <span id="success">0</span></div></div><button class="primary" id="validate">Valider</button></div>
-<div id="keys" class="keys"></div>
+<div id="keyboard" class="keyboard"></div>
 </section>
 
 <section id="done" class="card hidden">
@@ -90,63 +139,141 @@ const levels={
 let current=1,index=0,errors=0,success=0,waiting=false,timerId=null;
 
 const $=id=>document.getElementById(id);
+
+/* ===== Clavier AZERTY ===== */
+const keyboardLayout = [
+  ["1","2","3","4","5","6","7","8","9","0"],
+  ["A","Z","E","R","T","Y","U","I","O","P"],
+  ["Q","S","D","F","G","H","J","K","L","M"],
+  ["W","X","C","V","B","N",",",".",":","!"],
+  [" "]
+];
+
+function createKeyboard() {
+  const container = $("keyboard");
+  container.innerHTML = "";
+  keyboardLayout.forEach(row => {
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "keyboard-row";
+    row.forEach(key => {
+      const keyEl = document.createElement("div");
+      keyEl.className = "key";
+      if (key === " ") {
+        keyEl.classList.add("space");
+        keyEl.textContent = "Espace";
+        keyEl.dataset.key = " ";
+      } else {
+        keyEl.textContent = key;
+        keyEl.dataset.key = key.toLowerCase();
+      }
+      rowDiv.appendChild(keyEl);
+    });
+    container.appendChild(rowDiv);
+  });
+}
+
+function clearKeyboardHighlight() {
+  document.querySelectorAll(".key").forEach(k => {
+    k.classList.remove("correct", "wrong", "next");
+  });
+}
+
+function highlightKey(char, type = "next") {
+  clearKeyboardHighlight();
+  if (!char) return;
+  const key = char.toLowerCase();
+  const el = document.querySelector(`.key[data-key="${key}"]`);
+  if (el) el.classList.add(type);
+}
+
+function flashKeys(text, isCorrect) {
+  clearKeyboardHighlight();
+  const type = isCorrect ? "correct" : "wrong";
+  const chars = [...new Set(text.toLowerCase().split(""))];
+  chars.forEach(c => {
+    const el = document.querySelector(`.key[data-key="${c}"]`);
+    if (el) el.classList.add(type);
+  });
+  setTimeout(() => clearKeyboardHighlight(), 900);
+}
+
 function startLevel(n){
-current=n;index=0;errors=0;success=0;waiting=false;
-$("home").classList.add("hidden");$("done").classList.add("hidden");$("exercise").classList.remove("hidden");
-$("levelName").textContent=levels[n].name;render();
+  current=n;index=0;errors=0;success=0;waiting=false;
+  $("home").classList.add("hidden");$("done").classList.add("hidden");$("exercise").classList.remove("hidden");
+  $("levelName").textContent=levels[n].name;render();
 }
+
 function render(){
-clearInterval(timerId);waiting=false;
-const l=levels[current], item=l.items[index];
-$("step").textContent=`Exercice ${index+1} sur ${l.items.length}`;
-$("bar").style.width=(index/l.items.length*100)+"%";
-$("feedback").textContent="";$("feedback").className="feedback";
-$("choices").classList.add("hidden");$("choices").innerHTML="";
-$("timer").classList.add("hidden");$("answer").classList.remove("hidden");$("answer").value="";
-$("validate").disabled=false;
-$("instruction").textContent=l.instruction;
-$("target").textContent=typeof item==="string"?item:item.target;
-if(l.type==="game") setupGame(item); else normalMode(item);
-$("errors").textContent=errors;$("success").textContent=success;
-$("answer").focus();drawKeys(typeof item==="string"?item:item.answer||"");
+  clearInterval(timerId);waiting=false;
+  const l=levels[current], item=l.items[index];
+  $("step").textContent=`Exercice ${index+1} sur ${l.items.length}`;
+  $("bar").style.width=(index/l.items.length*100)+"%";
+  $("feedback").textContent="";$("feedback").className="feedback";
+  $("choices").classList.add("hidden");$("choices").innerHTML="";
+  $("timer").classList.add("hidden");$("answer").classList.remove("hidden");$("answer").value="";
+  $("validate").disabled=false;
+  $("instruction").textContent=l.instruction;
+  $("target").textContent=typeof item==="string"?item:item.target;
+  if(l.type==="game") setupGame(item); else normalMode(item);
+  $("errors").textContent=errors;$("success").textContent=success;
+  $("answer").focus();
+
+  // Clavier
+  createKeyboard();
+  const targetText = typeof item === "string" ? item : (item.answer || item.target || "");
+  const firstChar = targetText.trim().charAt(0);
+  if (firstChar) highlightKey(firstChar, "next");
 }
+
 function normalMode(){ }
+
 function setupGame(item){
-if(item.kind==="choice"){
-$("answer").classList.add("hidden");$("validate").disabled=true;$("choices").classList.remove("hidden");
-item.options.forEach(o=>{const b=document.createElement("button");b.textContent=o;b.onclick=()=>check(o,item.answer);$("choices").appendChild(b)});
-}else if(item.kind==="memory"){
-$("answer").value="";$("target").textContent=item.target;
-let sec=3;$("timer").classList.remove("hidden");$("timer").textContent=`Mémorise… ${sec}`;
-timerId=setInterval(()=>{sec--; $("timer").textContent=sec>0?`Mémorise… ${sec}`:"À toi !";if(sec<=0){clearInterval(timerId);$("target").textContent="";}},1000);
-}else{
-$("answer").placeholder=item.text;$("instruction").textContent=item.text;
-}}
-function drawKeys(text){
-$("keys").innerHTML="";
-[...new Set(text.toLowerCase().replace(/[^a-zàâçéèêëîïôùûüÿœ0-9]/gi,"").split(""))].forEach(c=>{
-let s=document.createElement("span");s.className="key";s.textContent=c.toUpperCase();$("keys").appendChild(s)});
+  if(item.kind==="choice"){
+    $("answer").classList.add("hidden");$("validate").disabled=true;$("choices").classList.remove("hidden");
+    item.options.forEach(o=>{const b=document.createElement("button");b.textContent=o;b.onclick=()=>check(o,item.answer);$("choices").appendChild(b)});
+  }else if(item.kind==="memory"){
+    $("answer").value="";$("target").textContent=item.target;
+    let sec=3;$("timer").classList.remove("hidden");$("timer").textContent=`Mémorise… ${sec}`;
+    timerId=setInterval(()=>{sec--; $("timer").textContent=sec>0?`Mémorise… ${sec}`:"À toi !";if(sec<=0){clearInterval(timerId);$("target").textContent="";}},1000);
+  }else{
+    $("answer").placeholder=item.text;$("instruction").textContent=item.text;
+  }
 }
+
 function check(typed,target){
-if(typed===target){success++;nextOrFinish()}else{errors++;feedback("❌ Ce n'est pas la bonne réponse. Essaie encore.",false)}
+  if(typed===target){
+    success++;
+    flashKeys(typed, true);   // vert
+    nextOrFinish();
+  }else{
+    errors++;
+    flashKeys(typed, false);  // rouge
+    feedback("❌ Ce n'est pas la bonne réponse. Essaie encore.",false);
+  }
 }
+
 function validate(){
-if(waiting)return;
-const item=levels[current].items[index], target=typeof item==="string"?item:item.answer;
-const typed=$("answer").value;
-if(current===8 && item.kind==="memory" && typed.trim().toUpperCase()===target.toUpperCase()) check(target,target);
-else if(typed===target) check(target,target);
-else{errors++;feedback("❌ Ce n'est pas tout à fait ça. Relis le modèle et essaie encore.",false)}
+  if(waiting)return;
+  const item=levels[current].items[index], target=typeof item==="string"?item:item.answer;
+  const typed=$("answer").value;
+  if(current===8 && item.kind==="memory" && typed.trim().toUpperCase()===target.toUpperCase()) check(target,target);
+  else if(typed===target) check(target,target);
+  else{
+    errors++;
+    flashKeys(typed, false);  // rouge
+    feedback("❌ Ce n'est pas tout à fait ça. Relis le modèle et essaie encore.",false);
+  }
 }
+
 function feedback(msg,ok){$("feedback").textContent=msg;$("feedback").className="feedback "+(ok?"ok":"bad");$("errors").textContent=errors;$("success").textContent=success}
 function nextOrFinish(){
-feedback("✅ Bravo ! C'est correct.",true);waiting=true;
-setTimeout(()=>{index++;if(index>=levels[current].items.length)finish();else render()},500);
+  feedback("✅ Bravo ! C'est correct.",true);waiting=true;
+  setTimeout(()=>{index++;if(index>=levels[current].items.length)finish();else render()},900);
 }
 function finish(){
-$("exercise").classList.add("hidden");$("done").classList.remove("hidden");
-$("doneTitle").textContent=levels[current].name;
-$("result").textContent=`Tu as terminé ${levels[current].items.length} exercice(s), avec ${success} réussite(s) et ${errors} erreur(s).`;
+  $("exercise").classList.add("hidden");$("done").classList.remove("hidden");
+  $("doneTitle").textContent=levels[current].name;
+  $("result").textContent=`Tu as terminé ${levels[current].items.length} exercice(s), avec ${success} réussite(s) et ${errors} erreur(s).`;
 }
 function restart(){startLevel(current)}
 function goHome(){clearInterval(timerId);$("exercise").classList.add("hidden");$("done").classList.add("hidden");$("home").classList.remove("hidden")}
