@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mon clavier — apprendre à taper</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#18212b;--muted:#5d6873;--blue:#2457a6;--blue2:#e7eefb;--ok:#197a4b;--bad:#b3261e;--key:#eef2f6;--border:#c7d0da}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:1.45}
+header{background:var(--blue);color:#fff;padding:22px 28px}header h1{margin:0;font-size:34px}header p{margin:5px 0 0}
+main{max-width:1150px;margin:22px auto;padding:0 18px}.card{background:#fff;border-radius:18px;padding:25px;box-shadow:0 3px 14px #00000012;margin-bottom:20px}
+h2{font-size:28px;margin:0 0 10px}.muted{color:var(--muted)}.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px}
+.level{padding:20px;border:2px solid #d3dbe4;border-radius:14px;background:#fff;text-align:left;font:inherit;cursor:pointer}.level:hover{border-color:var(--blue)}
+.level strong{display:block;font-size:23px}.level small{color:var(--muted)}
+.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.progress{height:15px;background:#dde4ec;border-radius:99px;overflow:hidden;margin:16px 0}.progress div{height:100%;background:var(--blue);transition:.3s}
+.instruction{font-size:25px;font-weight:700;margin:17px 0}.target{font-size:43px;letter-spacing:3px;text-align:center;padding:25px;background:#f7f9fb;border:2px dashed #b8c3ce;border-radius:14px;min-height:95px;white-space:pre-wrap}
+input{width:100%;font:inherit;padding:18px;border:3px solid #adb8c4;border-radius:12px;margin-top:15px}input:focus{outline:4px solid #c9daf8;border-color:var(--blue)}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:14px 20px;cursor:pointer}.primary{background:var(--blue);color:#fff}.secondary{background:var(--blue2);color:var(--blue)}
+.feedback{min-height:38px;margin:12px 0;font-weight:700}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.stats{display:flex;gap:10px;flex-wrap:wrap}.stat{background:#eef2f6;border-radius:10px;padding:9px 14px}.keys{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:18px}
+.key{min-width:43px;padding:9px 12px;background:var(--key);border:1px solid var(--border);border-bottom-width:3px;border-radius:7px;text-align:center;font-weight:700}
+.actions{display:flex;gap:10px;flex-wrap:wrap}.hidden{display:none!important}.choice{display:grid;gap:10px;margin:18px 0}.choice button{background:#f0f3f7;border:2px solid #ccd4dd;text-align:left}.choice button:hover{border-color:var(--blue)}
+.timer{font-size:25px;font-weight:700}.successbox{text-align:center;padding:15px}.big{font-size:42px;font-weight:700}
+footer{text-align:center;color:var(--muted);padding:10px 20px 30px;font-size:16px}
+@media(max-width:650px){body{font-size:18px}header h1{font-size:28px}.target{font-size:33px}}
+</style>
+</head>
+<body>
+<header><h1>⌨️ Mon clavier</h1><p>Apprendre à taper pas à pas, sans stress.</p></header>
+<main>
+<section id="home" class="card">
+<h2>Bienvenue !</h2>
+<p>Choisis une activité. Tu peux recommencer autant de fois que nécessaire.</p>
+<div class="menu">
+<button class="level" onclick="startLevel(1)"><strong>1 · Je découvre</strong><small>Touches, lettres et chiffres</small></button>
+<button class="level" onclick="startLevel(2)"><strong>2 · Je m'entraîne</strong><small>Syllabes et enchaînements</small></button>
+<button class="level" onclick="startLevel(3)"><strong>3 · Je forme des mots</strong><small>Mots simples et mots à compléter</small></button>
+<button class="level" onclick="startLevel(4)"><strong>4 · Je fais attention</strong><small>Erreurs, lettres proches, précision</small></button>
+<button class="level" onclick="startLevel(5)"><strong>5 · Majuscules & ponctuation</strong><small>Écrire correctement</small></button>
+<button class="level" onclick="startLevel(6)"><strong>6 · Chiffres</strong><small>Dates, téléphones et prix</small></button>
+<button class="level" onclick="startLevel(7)"><strong>7 · Dans la vraie vie</strong><small>Formulaires et e-mails</small></button>
+<button class="level" onclick="startLevel(8)"><strong>8 · Jeux</strong><small>Défis et mémoire</small></button>
+<button class="level" onclick="startLevel(9)"><strong>9 · Mon message</strong><small>Écrire un vrai petit message</small></button>
+</div>
+</section>
+
+<section id="exercise" class="card hidden">
+<div class="top"><div><strong id="levelName"></strong><div class="muted" id="step"></div></div><div class="actions"><button class="secondary" onclick="goHome()">← Accueil</button></div></div>
+<div class="progress"><div id="bar"></div></div>
+<div class="instruction" id="instruction"></div>
+<div id="target" class="target"></div>
+<div id="choices" class="choice hidden"></div>
+<div id="timer" class="timer hidden"></div>
+<input id="answer" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tape ici…">
+<div id="feedback" class="feedback" aria-live="polite"></div>
+<div class="top"><div class="stats"><div class="stat">Erreurs : <span id="errors">0</span></div><div class="stat">Réussites : <span id="success">0</span></div></div><button class="primary" id="validate">Valider</button></div>
+<div id="keys" class="keys"></div>
+</section>
+
+<section id="done" class="card hidden">
+<div class="successbox"><div class="big">🎉 Bravo !</div><h2 id="doneTitle"></h2><p id="result"></p><div class="actions" style="justify-content:center"><button class="primary" onclick="restart()">Refaire</button><button class="secondary" onclick="goHome()">Choisir une autre activité</button></div></div>
+</section>
+</main>
+<footer>Une erreur n'est pas un échec : elle aide à apprendre.</footer>
+
+<script>
+const levels={
+1:{name:"Niveau 1 — Je découvre",type:"type",instruction:"Tape ce qui est affiché.",items:["a","e","i","o","u","m","n","r","s","t","l","p","1","2","5","7","0"]},
+2:{name:"Niveau 2 — Je m'entraîne",type:"type",instruction:"Recopie la série affichée.",items:["ma","me","mi","mo","mu","la","le","li","lo","lu","pa","pe","pi","ra","re","sa","se","si"]},
+3:{name:"Niveau 3 — Je forme des mots",type:"type",instruction:"Recopie le mot affiché.",items:["maman","papa","salut","bonjour","maison","souris","clavier","ordinateur","famille","internet","mairie","téléphone"]},
+4:{name:"Niveau 4 — Je fais attention",type:"type",instruction:"Recopie exactement. Observe bien chaque lettre.",items:["a e a e","m n m n","p q p q","b d b d","clavier","souris","bonjour","ordinateur"]},
+5:{name:"Niveau 5 — Majuscules & ponctuation",type:"type",instruction:"Recopie exactement, avec les majuscules et la ponctuation.",items:["Bonjour !","Ça va ?","Je m'appelle Marie.","J'habite en France.","Je vais bien.","Merci beaucoup.","À bientôt !","Paris est en France."]},
+6:{name:"Niveau 6 — Les chiffres",type:"type",instruction:"Recopie exactement.",items:["06 12 34 56 78","10/11/2026","26/11/2026","01/01/2027","5 €","12 €","19,90 €","125,50 €","75","2026"]},
+7:{name:"Niveau 7 — Dans la vraie vie",type:"type",instruction:"Recopie l'information demandée.",items:["Marie Dupont","12 rue des Lilas","74100 Ville-la-Grand","marie.dupont@example.fr","Rendez-vous mardi à 14 h 30.","Bonjour, je vous contacte pour un renseignement."]},
+8:{name:"Niveau 8 — Jeux",type:"game",instruction:"Relève les petits défis.",items:[
+{kind:"missing",target:"M _ M A N",answer:"A",text:"Quelle lettre manque ?"},
+{kind:"missing",target:"CL _ VIER",answer:"A",text:"Quelle lettre manque ?"},
+{kind:"odd",target:"A A A O A A",answer:"O",text:"Quelle lettre est différente ?"},
+{kind:"memory",target:"MAISON",answer:"MAISON",text:"Mémorise le mot. Il va disparaître !"},
+{kind:"memory",target:"SOURIS",answer:"SOURIS",text:"Mémorise le mot. Il va disparaître !"},
+{kind:"choice",target:"Quel mot contient la lettre A ?",answer:"MAISON",options:["SOURIS","MAISON","LIVRE"],text:"Choisis la bonne réponse."}
+]},
+9:{name:"Niveau 9 — Mon message",type:"type",instruction:"Recopie le message. Tu es prêt à écrire un vrai message !",items:[
+"Bonjour Marie,\nJe te souhaite une bonne journée.\nÀ bientôt !",
+"Bonjour,\nJe voulais vous remercier pour votre aide.\nBonne journée.",
+"Bonjour,\nComment allez-vous aujourd'hui ?\nÀ bientôt."
+]}
+};
+let current=1,index=0,errors=0,success=0,waiting=false,timerId=null;
+
+const $=id=>document.getElementById(id);
+function startLevel(n){
+current=n;index=0;errors=0;success=0;waiting=false;
+$("home").classList.add("hidden");$("done").classList.add("hidden");$("exercise").classList.remove("hidden");
+$("levelName").textContent=levels[n].name;render();
+}
+function render(){
+clearInterval(timerId);waiting=false;
+const l=levels[current], item=l.items[index];
+$("step").textContent=`Exercice ${index+1} sur ${l.items.length}`;
+$("bar").style.width=(index/l.items.length*100)+"%";
+$("feedback").textContent="";$("feedback").className="feedback";
+$("choices").classList.add("hidden");$("choices").innerHTML="";
+$("timer").classList.add("hidden");$("answer").classList.remove("hidden");$("answer").value="";
+$("validate").disabled=false;
+$("instruction").textContent=l.instruction;
+$("target").textContent=typeof item==="string"?item:item.target;
+if(l.type==="game") setupGame(item); else normalMode(item);
+$("errors").textContent=errors;$("success").textContent=success;
+$("answer").focus();drawKeys(typeof item==="string"?item:item.answer||"");
+}
+function normalMode(){ }
+function setupGame(item){
+if(item.kind==="choice"){
+$("answer").classList.add("hidden");$("validate").disabled=true;$("choices").classList.remove("hidden");
+item.options.forEach(o=>{const b=document.createElement("button");b.textContent=o;b.onclick=()=>check(o,item.answer);$("choices").appendChild(b)});
+}else if(item.kind==="memory"){
+$("answer").value="";$("target").textContent=item.target;
+let sec=3;$("timer").classList.remove("hidden");$("timer").textContent=`Mémorise… ${sec}`;
+timerId=setInterval(()=>{sec--; $("timer").textContent=sec>0?`Mémorise… ${sec}`:"À toi !";if(sec<=0){clearInterval(timerId);$("target").textContent="";}},1000);
+}else{
+$("answer").placeholder=item.text;$("instruction").textContent=item.text;
+}}
+function drawKeys(text){
+$("keys").innerHTML="";
+[...new Set(text.toLowerCase().replace(/[^a-zàâçéèêëîïôùûüÿœ0-9]/gi,"").split(""))].forEach(c=>{
+let s=document.createElement("span");s.className="key";s.textContent=c.toUpperCase();$("keys").appendChild(s)});
+}
+function check(typed,target){
+if(typed===target){success++;nextOrFinish()}else{errors++;feedback("❌ Ce n'est pas la bonne réponse. Essaie encore.",false)}
+}
+function validate(){
+if(waiting)return;
+const item=levels[current].items[index], target=typeof item==="string"?item:item.answer;
+const typed=$("answer").value;
+if(current===8 && item.kind==="memory" && typed.trim().toUpperCase()===target.toUpperCase()) check(target,target);
+else if(typed===target) check(target,target);
+else{errors++;feedback("❌ Ce n'est pas tout à fait ça. Relis le modèle et essaie encore.",false)}
+}
+function feedback(msg,ok){$("feedback").textContent=msg;$("feedback").className="feedback "+(ok?"ok":"bad");$("errors").textContent=errors;$("success").textContent=success}
+function nextOrFinish(){
+feedback("✅ Bravo ! C'est correct.",true);waiting=true;
+setTimeout(()=>{index++;if(index>=levels[current].items.length)finish();else render()},500);
+}
+function finish(){
+$("exercise").classList.add("hidden");$("done").classList.remove("hidden");
+$("doneTitle").textContent=levels[current].name;
+$("result").textContent=`Tu as terminé ${levels[current].items.length} exercice(s), avec ${success} réussite(s) et ${errors} erreur(s).`;
+}
+function restart(){startLevel(current)}
+function goHome(){clearInterval(timerId);$("exercise").classList.add("hidden");$("done").classList.add("hidden");$("home").classList.remove("hidden")}
+$("validate").onclick=validate;
+$("answer").addEventListener("keydown",e=>{if(e.key==="Enter" && !e.shiftKey)validate()});
+</script>
+</body>
+</html>
